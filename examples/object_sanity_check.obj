@@ -1,4 +1,5 @@
---> 17
+--> 16
 
-{ contents: 17
-}.contents
+{ contents: 17,
+  moar: 16
+}.moar
