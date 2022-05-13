@@ -3,6 +3,6 @@
 { arg: 0
 , acc: 0
 , enter: self => function(n) { self.arg := n }
-, add: self => (self.acc := clone(s).equals).equals := self' => self'.acc + self'.arg
+, add: self => (var copy = clone(s); self.acc := copy.equals).equals := self' => self'.acc + self'.arg
 , equals: self => self.arg
 }.enter(5).add.equals
