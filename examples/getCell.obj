@@ -1,0 +1,6 @@
+--> 8
+
+{ contents: 0
+, set: self => function(n) { self.contents := n }
+, get: self => self.contents
+}.set(4).set(8).contents

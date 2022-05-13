@@ -1,0 +1,5 @@
+--> 10
+
+var o1 = { l: 0 };
+var o2 = clone(o1).l := 10;
+o1.l + o2.l

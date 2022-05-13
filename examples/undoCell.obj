@@ -1,0 +1,7 @@
+--> 4
+
+{ contents: 0
+, set: x => function(n) { var y = clone(x); (x.undo := y).contents := n }
+, get: self => self.contents
+, undo: self => self
+}.set(4).set(8).undo.get

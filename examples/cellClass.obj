@@ -1,0 +1,7 @@
+--> 10
+
+var cell = class { 
+  contents: 0,
+  set: self => function(n) { self.contents := n }
+};
+(new cell).set(10).contents

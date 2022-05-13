@@ -1,0 +1,6 @@
+--> 10
+
+var s1 = "hello,";
+var s2 = "world!";
+var s3 = "o";
+if (?s1) 0; else #(s1 ++ s2 \\ s3)

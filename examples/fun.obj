@@ -1,0 +1,6 @@
+--> -12
+
+var f = function(x) {
+  if (x < 0) x; else -x
+};
+f(4 + 8)
