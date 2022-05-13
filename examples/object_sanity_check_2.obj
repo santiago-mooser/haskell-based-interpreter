@@ -1,0 +1,5 @@
+--> 17
+
+{ contents: 17,
+  get: self => self.contents
+}.get
