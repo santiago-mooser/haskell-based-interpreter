@@ -1,0 +1,9 @@
+--> 12
+
+var f = function(x) {
+  var g = function(x){
+    x
+  };
+  g(x)
+};
+f(4 + 8)
