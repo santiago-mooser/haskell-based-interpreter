@@ -1,0 +1,7 @@
+--> 4
+
+{ contents: 3,
+  get: self => self.contents,
+  gets: self => function(n) { n },
+  double: self => self.contents := self.contents * 2
+}.gets(4)

@@ -1,0 +1,7 @@
+--> 3
+
+{ contents: 17,
+  get: self => self.contents,
+  set: self => function(n) { self.contents := n },
+  double: self => function(n) { n * 2 }
+}.set(3).contents

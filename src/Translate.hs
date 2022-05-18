@@ -29,13 +29,6 @@ replace bod arg xself = case bod of
 translate :: Source.Exp -> Sigma.Term
 translate (Source.Var x) = Sigma.Var x
 translate (Source.Object mlist) = Sigma.Object [(l, Sigma.Method ml (translate m)) | (l, Source.Method ml m) <- mlist]
-    -- Define a mapping that takes a list of methods and applies translate to each
-    -- let t_body = map (\(l, Source.Method ml v) -> (l, Sigma.Method ml (translate v))) in --
-    -- case mlist of
-    --     -- If the list of methods is empty, just return an object with no methods (why? lol)
-    --     [] -> Sigma.Object []
-    --     -- Otherwise translate all the methods and then return an object with the translated methods
-    --     (l, Source.Method ml v):xs -> Sigma.Object ((l, Sigma.Method ml (translate v)):t_body xs)
 translate (Source.Invoke exp label) = Sigma.Invoke (translate exp) label
 translate (Source.Update exp1 label (Source.Method v exp2)) = Sigma.Update (translate exp1) label (Sigma.Method v (translate exp2))
 translate (Source.Clone exp) = Sigma.Clone (translate exp)
@@ -46,18 +39,24 @@ translate (Source.If exp1 exp2 exp3) = Sigma.If (translate exp1) (translate exp2
 translate (Source.Let var exp1 exp2) = Sigma.Let var (translate exp1) (translate exp2)
 translate (Source.Fun arg body) =
     let bod             = translate body
-        xself           = Sigma.Var "xself"
+        xself           = Sigma.Var "self"
         replaced_bod    = replace bod arg xself
     in Sigma.Object [
-            ("arg", Sigma.Method "xself" (Sigma.Invoke xself "arg")),
-            ("val", Sigma.Method "xself" replaced_bod)
+            ("arg", Sigma.Method "self" (Sigma.Invoke xself "arg")),
+            ("val", Sigma.Method "self" replaced_bod)
         ]
 translate (Source.Call func exp) =
     let f = Sigma.Clone (translate func)
         e = Sigma.Method "exp" (translate exp)
     in Sigma.Invoke (Sigma.Update f "arg" e) "val"
-translate (Source.Class _) = error "translate: class"
-translate (Source.New _) = error "translate: new"
+
+translate (Source.Class mlist) =
+    let translated_methods = [(l, Sigma.Method ml (translate m)) | (l, Source.Method ml m) <- mlist]
+        new_method = [("new", Sigma.Method "z" (Sigma.Object translated_methods))]
+    in Sigma.Object new_method
+translate (Source.New obj) =
+    Sigma.Invoke (translate obj) "new"
+
 translate Source.Letrec {} = error "translate: letrec"
 translate (Source.Array _) = error "translate: array"
 --encode a function using an object with two methods. The first method (arg) stores the argument.

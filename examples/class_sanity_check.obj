@@ -1,0 +1,7 @@
+--> 0
+
+var cell = class {
+  contents: 0,
+  set: self => function(n) { self.contents := n }
+};
+(new cell).contents
