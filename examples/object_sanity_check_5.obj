@@ -1,0 +1,6 @@
+--> 17
+
+{ contents: 17,
+  get: self => self.contents,
+  set: self => function(n) { self.contents := n }
+}.contents
