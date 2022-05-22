@@ -19,7 +19,7 @@ evaluate :: Term -> Env -> Mem -> Maybe (Value, Mem)
 evaluate (Var x) env mem =
   case lookup x env of
     Just a -> Just (a, mem)
-    Nothing -> Nothing
+    Nothing -> error ("No such variable " ++ show x)
 evaluate (Object ms) env mem =
   let m2mc (l, Method self term) = (l, Closure env self term) in
   Just (ObjRef (length mem), mem ++ [map m2mc ms])
@@ -29,40 +29,40 @@ evaluate (Invoke a l) env mem =
       let ms = mem' !! i in
       case lookup l ms of
         Just (Closure env self term) -> evaluate term ((self, ObjRef i) : env) mem'
-        _ -> Nothing
-    _ -> Nothing
+        _ -> error ("Object " ++ show i ++ " has no method " ++ show l)
+    _ -> error ("Cannot invoke non-object " ++ show a)
 evaluate (Update a l (Method self term)) env mem =
   case evaluate a env mem of
     Just (ObjRef i, mem') ->
       Just (ObjRef i, replace i l (Closure env self term) mem')
-    _ -> Nothing
+    _ -> error ("Cannot update non-object " ++ show a)
 evaluate (Lit v) env mem = Just (v, mem)
 evaluate (Unary op a) env mem =
   case evaluate a env mem of
     Just (a', mem') -> Just (unary op a', mem')
-    Nothing -> Nothing
+    Nothing -> error ("Cannot apply unary operator " ++ show op ++ " to non-value " ++ show a)
 evaluate (Binary op a b) env mem =
   case evaluate a env mem of
     Just (a', mem') -> case evaluate b env mem' of
       Just (b', mem'') -> Just (binary op a' b', mem'')
-      Nothing -> Nothing
-    Nothing -> Nothing
+      Nothing -> error ("Cannot apply binary operator " ++ show op ++ " to non-value " ++ show b)
+    Nothing -> error ("Cannot apply binary operator " ++ show op ++ " to non-value " ++ show a)
 evaluate (If a b c) env mem =
   case evaluate a env mem of
     Just (BoolV True, mem') -> evaluate b env mem'
     Just (BoolV False, mem') -> evaluate c env mem'
-    _ -> Nothing
+    _ -> error ("Condition in if statement returned a non-Boolean value: " ++ show a)
 evaluate (Let x a b) env mem =
   case evaluate a env mem of
     Just (a', mem') -> evaluate b ((x, a') : env) mem'
-    Nothing -> Nothing
-evaluate (Clone a) env mem =  -- returns a new object with the same methods as object a has
+    Nothing -> error ("Cannot bind non-value " ++ show a ++ " to variable " ++ show x)
+evaluate (Clone a) env mem =
   case evaluate a env mem of
-    -- clone the object
     Just (ObjRef i, mem') ->
-      let ms = mem' !! i in
-      Just (ObjRef (length mem), mem ++ [ms])
-    _ -> Nothing
+      let mcs = mem' !! i in
+        Just (ObjRef (length mem'), mem' ++ [mcs])
+    Just (a', mem') -> error ("Unable to clone " ++ show a ++ ". Not an Object")
+    Nothing -> error ("Unable to clone non-object " ++ show a)
 
 execute :: Term -> Value
 execute e = fst $ fromJust $ evaluate e [] []

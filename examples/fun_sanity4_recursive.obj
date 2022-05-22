@@ -1,6 +1,0 @@
---> 2
-
-var f = function(x) {
-  if (x == 1) -x; else f(x-1)
-};
-f(4 + 8)
