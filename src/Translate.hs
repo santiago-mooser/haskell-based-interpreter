@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use camelCase" #-}
 
 
 
@@ -35,6 +36,17 @@ replace bod arg xself = case bod of
                                                 else Sigma.Let x (replace t1 arg xself) (replace t2 arg xself)
 
 
+fixFunction :: Source.Exp
+fixFunction =
+    let invocation = Source.Call (Source.Var "f") (Source.Invoke (Source.Var "self") "rec")
+        method = Source.Method "self" invocation
+        object = Source.Object [("rec", method)]
+    in
+    Source.Fun "f" (Source.Invoke object "rec")
+
+desugar :: Common.Var -> Source.Exp -> Source.Exp
+desugar var exp = Source.Call fixFunction (Source.Fun var exp)
+
 translate :: Source.Exp -> Sigma.Term
 translate (Source.Var x)                                    = Sigma.Var x
 translate (Source.Object mlist)                             = Sigma.Object [(l, Sigma.Method ml (translate m)) | (l, Source.Method ml m) <- mlist]
@@ -46,19 +58,27 @@ translate (Source.Unary op exp)                             = Sigma.Unary op (tr
 translate (Source.Binary op exp1 exp2)                      = Sigma.Binary op (translate exp1) (translate exp2)
 translate (Source.If exp1 exp2 exp3)                        = Sigma.If (translate exp1) (translate exp2) (translate exp3)
 translate (Source.Let var exp1 exp2)                        = Sigma.Let var (translate exp1) (translate exp2)
-translate (Source.Fun arg body)                             =   let bod             = translate body
-                                                                    xself           = Sigma.Var arg
-                                                                    replaced_bod    = replace bod arg xself
-                                                                in Sigma.Object [
+translate (Source.Fun arg body)                             =   let bod             = translate body                            --  Translate the body first
+                                                                    xself           = Sigma.Var arg                             -- Then build a variable for the self argument
+                                                                    replaced_bod    = replace bod arg xself                     -- Finally replace all occurences of the self argument with the variable
+                                                                in Sigma.Object [                                               -- Then build the object
                                                                         ("arg", Sigma.Method arg (Sigma.Invoke xself "arg")),
                                                                         ("val", Sigma.Method arg replaced_bod)
                                                                     ]
-translate (Source.Call func exp)                            =   let f = Sigma.Clone (translate func)
-                                                                    e = Sigma.Method "exp" (translate exp)
-                                                                in Sigma.Invoke (Sigma.Update f "arg" e) "val"
-translate (Source.Class mlist)                              =   let translated_methods = [(l, Sigma.Method ml (translate m)) | (l, Source.Method ml m) <- mlist]
-                                                                    new_method = [("new", Sigma.Method "z" (Sigma.Object translated_methods))]
-                                                                in Sigma.Object new_method
+
+translate (Source.Call func exp)                            =   let f = Sigma.Clone (translate func)                  -- Clone the function
+                                                                    e = Sigma.Method "exp" (translate exp)            -- Build the method for the argument
+                                                                in Sigma.Invoke (Sigma.Update f "arg" e) "val"        -- Invoke the function with the argument
+
+translate (Source.Class mlist)                              =   let translated_methods = [(l, Sigma.Method ml (translate m)) | (l, Source.Method ml m) <- mlist]    -- Translate the methods using a map
+                                                                    new_method = [("new", Sigma.Method "z" (Sigma.Object translated_methods))]                      -- Build the new method
+                                                                in Sigma.Object new_method                                                                          -- Build the object
+
 translate (Source.New obj)                                  = Sigma.Invoke (translate obj) "new"
-translate Source.Letrec {}                                  = error "translate: letrec"
-translate (Source.Array _)                                  = error "translate: array"
+translate (Source.Letrec var exp1 exp2)                     = translate (Source.Let var (desugar var exp1) exp2)
+
+translate (Source.Array arr)                                = Sigma.Object (translate_helper_2 arr 0)
+    where
+    translate_helper_2 :: [Source.Exp] -> Integer-> [(Common.Label, Sigma.Method)]
+    translate_helper_2 [] _ = []
+    translate_helper_2 (x:xs) label = (show label, Sigma.Method (show label) (translate x)):translate_helper_2 xs (label+1)
